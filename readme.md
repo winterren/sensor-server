@@ -175,6 +175,8 @@ GET /api/history?page=1&limit=5&temperature_min=25&CO_max=0.5&sort=temperature&o
 | `page`  | number | 是    | 1           | 当前页码                          |
 | `sort`  | string | 是    | `timestamp` | 目前仅支持时间排序                     |
 | `order` | string | 是    | `desc`      | 排序方式：`asc` / `desc`           |
+| `start` | string | 是    | 无   | 起始时间（例如：`2025-06-30 00:00:00`） |
+| `end`   | string | 是    | 无   | 结束时间（例如：`2025-06-30 23:59:59`） |
 
 ### 响应示例：
 

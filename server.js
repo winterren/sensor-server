@@ -168,6 +168,7 @@ app.get('/api/history', (req, res) => {
 });
 
 
+
 app.get('/api/warning-history', (req, res) => {
   const {
     type,    // 传感器类型（如 CO）
@@ -175,7 +176,9 @@ app.get('/api/warning-history', (req, res) => {
     limit = 10,
     page = 1,
     sort = 'timestamp',
-    order = 'desc'
+    order = 'desc',
+    start,   // 起始时间
+    end      // 结束时间
   } = req.query;
 
   db.all(`SELECT sensor, type as raw_level, value FROM thresholds`, (err, thresholdRows) => {
@@ -187,7 +190,7 @@ app.get('/api/warning-history', (req, res) => {
       let levelKey = raw_level;
 
       if (raw_level.endsWith('_low') || raw_level.endsWith('_high')) {
-        levelKey = raw_level.replace(/_low|_high/, ''); // 统一为 warn/level1/level2
+        levelKey = raw_level.replace(/_low|_high/, '');
       }
 
       if (!['warn', 'level1', 'level2'].includes(levelKey)) return;
@@ -206,6 +209,10 @@ app.get('/api/warning-history', (req, res) => {
       dataRows.forEach(row => {
         const { timestamp, index_no } = row;
 
+        // 时间范围过滤（如果设置了）
+        if (start && new Date(timestamp) < new Date(start)) return;
+        if (end && new Date(timestamp) > new Date(end)) return;
+
         Object.entries(thresholds).forEach(([sensor, levels]) => {
           const value = row[sensor];
           if (value === undefined || value === null) return;
@@ -221,7 +228,7 @@ app.get('/api/warning-history', (req, res) => {
         });
       });
 
-      // 筛选
+      // 筛选 type 和 level
       let filtered = warnings;
       if (type) filtered = filtered.filter(w => w.type === type);
       if (level) filtered = filtered.filter(w => w.level === level);
@@ -250,14 +257,14 @@ app.get('/api/warning-history', (req, res) => {
     });
   });
 
-  // 帮助函数：判断 value 是否触发任意一个阈值条件
   function isTriggered(value, conditions = []) {
     return conditions.some(({ raw, value: threshold }) => {
       if (raw.endsWith('_low')) return value <= threshold;
-      return value >= threshold; // 默认 high 或标准向上判断
+      return value >= threshold;
     });
   }
 });
+
 
 
 app.listen(PORT, () => {
