@@ -64,7 +64,7 @@ function insertSensorData(data) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   stmt.run([
-    now, data.index, data.voltage1, data.voltage2, data.temperature,
+    now, data.index % 256, data.voltage1, data.voltage2, data.temperature,
     data.O2, data.CO, data.C2H2, data.CH4, data.C2H6, data.CO2
   ]);
   stmt.finalize();

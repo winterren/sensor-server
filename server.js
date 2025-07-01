@@ -161,10 +161,31 @@ app.get('/api/history', (req, res) => {
     LIMIT ? OFFSET ?
   `;
 
-  db.all(sql, [...params, pageSize, offset], (err, rows) => {
+    // 先获取总数
+  const countSql = `
+    SELECT COUNT(*) as count FROM sensor_data
+    ${whereClause}
+  `;
+  db.get(countSql, params, (err, countRow) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
+
+    const total = countRow.count;
+    const totalPages = Math.ceil(total / pageSize);
+
+    // 再查分页数据
+    db.all(sql, [...params, pageSize, offset], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      res.json({
+        total,
+        page: pageNum,
+        pageSize,
+        totalPages,
+        data: rows
+      });
+    });
   });
+
 });
 
 
@@ -248,12 +269,17 @@ app.get('/api/warning-history', (req, res) => {
       const offset = (pageInt - 1) * limitInt;
       const paged = filtered.slice(offset, offset + limitInt);
 
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / limitInt);
+
       res.json({
-        total: filtered.length,
+        total,
         page: pageInt,
         pageSize: limitInt,
+        totalPages,
         data: paged
       });
+
     });
   });
 
