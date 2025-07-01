@@ -17,11 +17,24 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/latest', (req, res) => {
-  getLatestData(1, (err, rows) => {
+  const sql = `
+    SELECT *
+    FROM (
+      SELECT *
+      FROM sensor_data
+      ORDER BY timestamp DESC
+    )
+    GROUP BY index_no
+    ORDER BY index_no ASC
+  `;
+
+  db.all(sql, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(rows[0] || {});
+    res.json(rows);
   });
 });
+
+
 
 // ✅ 获取历史记录总条数
 app.get('/api/history/count', (req, res) => {
@@ -199,7 +212,8 @@ app.get('/api/warning-history', (req, res) => {
     sort = 'timestamp',
     order = 'desc',
     start,   // 起始时间
-    end      // 结束时间
+    end,      // 结束时间
+    index_no   // 👈 加入 index_no 支持
   } = req.query;
 
   db.all(`SELECT sensor, type as raw_level, value FROM thresholds`, (err, thresholdRows) => {
@@ -253,6 +267,11 @@ app.get('/api/warning-history', (req, res) => {
       let filtered = warnings;
       if (type) filtered = filtered.filter(w => w.type === type);
       if (level) filtered = filtered.filter(w => w.level === level);
+      if (index_no !== undefined) {
+        const indexNoInt = parseInt(index_no);
+        filtered = filtered.filter(w => w.index_no === indexNoInt);
+      }
+
 
       // 排序
       filtered.sort((a, b) => {
